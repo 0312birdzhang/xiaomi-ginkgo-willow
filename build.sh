@@ -1,0 +1,58 @@
+#!/bin/bash
+set -xe
+
+OUT="$(realpath "$1" 2>/dev/null || echo 'out')"
+
+rm -rf "$OUT"
+
+mkdir -p "$OUT"
+
+TMP=$(mktemp -d)
+HERE=$(pwd)
+SCRIPT="$(dirname "$(realpath "$0")")"/build
+
+mkdir "${TMP}/system"
+mkdir "${TMP}/partitions"
+
+source "${HERE}/deviceinfo"
+
+case $deviceinfo_arch in
+    "armhf") RAMDISK_ARCH="armhf";;
+    "aarch64") RAMDISK_ARCH="arm64";;
+    "x86") RAMDISK_ARCH="i386";;
+esac
+
+TMPDOWN=$(mktemp -d)
+
+cd "$TMPDOWN"
+    git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b pie-gsi --depth 1
+    GCC_PATH="$TMPDOWN/aarch64-linux-android-4.9"
+    if [ -n "$deviceinfo_kernel_clang_compile" ] && $deviceinfo_kernel_clang_compile; then
+        git clone https://github.com/crdroidandroid/android_prebuilts_clang_host_linux-x86_clang-6875598 -b 10.0 --depth=1 linux-x86
+        CLANG_PATH="$TMPDOWN/linux-x86"
+    fi
+    git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 -b pie-gsi --depth 1
+    GCC_ARM32_PATH="$TMPDOWN/arm-linux-androideabi-4.9"
+    git clone "$deviceinfo_kernel_source" -b $deviceinfo_kernel_source_branch --depth 1
+    curl --location --output halium-boot-ramdisk.img "https://github.com/halium/initramfs-tools-halium/releases/download/continuous/initrd.img-touch-${RAMDISK_ARCH}"
+
+cd "$HERE"
+if [ -n "$deviceinfo_kernel_clang_compile" ] && $deviceinfo_kernel_clang_compile; then
+    CC=clang \
+    CLANG_TRIPLE=${deviceinfo_arch}-linux-gnu- \
+    PATH="$CLANG_PATH/bin:$GCC_PATH/bin:$GCC_ARM32_PATH/bin:${PATH}" \
+    "$SCRIPT/build-kernel.sh" "${TMPDOWN}" "${TMP}/system"
+else
+    PATH="$GCC_PATH/bin:$GCC_ARM32_PATH/bin:${PATH}" \
+    "$SCRIPT/build-kernel.sh" "${TMPDOWN}" "${TMP}/system"
+fi
+
+"$SCRIPT/make-bootimage.sh" "${TMPDOWN}/KERNEL_OBJ" "${TMPDOWN}/halium-boot-ramdisk.img" "${TMP}/partitions/boot.img"
+
+cp -av overlay/* "${TMP}/"
+"$SCRIPT/build-tarball-mainline.sh" xiaomi-willow "${OUT}" "${TMP}"
+
+rm -r "${TMP}"
+rm -r "${TMPDOWN}"
+
+echo "Files have been exported to ${OUT}!"
