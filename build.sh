@@ -50,7 +50,7 @@ fi
 "$SCRIPT/make-bootimage.sh" "${TMPDOWN}/KERNEL_OBJ" "${TMPDOWN}/halium-boot-ramdisk.img" "${TMP}/partitions/boot.img"
 
 cp -av overlay/* "${TMP}/"
-"$SCRIPT/build-tarball-mainline.sh" xiaomi-willow "${OUT}" "${TMP}"
+"$SCRIPT/build-tarball-mainline.sh" willow "${OUT}" "${TMP}"
 
 rm -r "${TMP}"
 rm -r "${TMPDOWN}"
