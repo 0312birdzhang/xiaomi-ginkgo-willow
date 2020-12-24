@@ -5,8 +5,9 @@ TMPDOWN=$1
 INSTALL_MOD_PATH=$2
 HERE=$(pwd)
 source "${HERE}/deviceinfo"
-basename "${deviceinfo_kernel_source}"
+
 KERNEL_DIR="${TMPDOWN}/$(basename "${deviceinfo_kernel_source}")"
+KERNEL_DIR="${KERNEL_DIR%.git}"
 OUT="${TMPDOWN}/KERNEL_OBJ"
 
 mkdir -p "$OUT"
@@ -19,12 +20,25 @@ case "$deviceinfo_arch" in
 esac
 
 export ARCH
-export CROSS_COMPILE=$TMPDOWN/aarch64-linux-android-4.9/bin/aarch64-linux-android-
-export CROSS_COMPILE_ARM32=$TMPDOWN/arm-linux-androideabi-4.9/bin/arm-linux-androideabi-
-PATH=$$TMPDOWN/linux-x86/clang-r365631c/bin/:$TMPDOWN/aarch64-linux-android-4.9/bin/:$PATH
-export PATH
+export CROSS_COMPILE="${deviceinfo_arch}-linux-android-"
+if [ "$ARCH" == "arm64" ]; then
+    export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+fi
+MAKEOPTS=""
+if [ -n "$CC" ]; then
+    MAKEOPTS="CC=$CC"
+fi
 
 cd "$KERNEL_DIR"
 make O="$OUT" $deviceinfo_kernel_defconfig
-make O="$OUT" CC=$CC -j$(nproc --all)
-make O="$OUT" CC=$CC INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH="$INSTALL_MOD_PATH" modules_install
+make O="$OUT" $MAKEOPTS -j$(nproc --all)
+make O="$OUT" $MAKEOPTS INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH="$INSTALL_MOD_PATH" modules_install
+ls "$OUT/arch/$ARCH/boot/"*Image*
+
+if [ -n "$deviceinfo_kernel_apply_overlay" ] && $deviceinfo_kernel_apply_overlay; then
+    ${TMPDOWN}/ufdt_apply_overlay "$OUT/arch/arm64/boot/dts/qcom/${deviceinfo_kernel_appended_dtb}.dtb" \
+        "$OUT/arch/arm64/boot/dts/qcom/${deviceinfo_kernel_dtb_overlay}.dtbo" \
+        "$OUT/arch/arm64/boot/dts/qcom/${deviceinfo_kernel_dtb_overlay}-merged.dtb"
+    cat "$OUT/arch/$ARCH/boot/Image.gz" \
+        "$OUT/arch/arm64/boot/dts/qcom/${deviceinfo_kernel_dtb_overlay}-merged.dtb" > "$OUT/arch/$ARCH/boot/Image.gz-dtb"
+fi
