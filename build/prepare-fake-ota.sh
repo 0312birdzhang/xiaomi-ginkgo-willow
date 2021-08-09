@@ -64,7 +64,7 @@ cp "$DEVICE_TARBALL" "$OUTPUT"
 touch "$OUTPUT/$file.asc"
 echo "update $file $file.asc" >> "$OUTPUT/ubuntu_command"
 
-device=${file%.*} # remove extension from device tarball
+device=${file%%.*} # remove extension from device tarball
 device=${device##*_} # remove part before _
 
 # Version tarball
