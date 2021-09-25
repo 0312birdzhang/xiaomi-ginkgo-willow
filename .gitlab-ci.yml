@@ -7,6 +7,8 @@ build:
     - apt install android-tools-mkbootimg bc build-essential ca-certificates cpio curl git kmod libssl-dev libtinfo5 python2 sudo unzip wget xz-utils -y --no-install-recommends
     - ln -sf python2.7 /usr/bin/python
     - ./build.sh
+    # for compatibility until device name is changed on system-image-server
+    - cp out/device_ginkgo.tar.xz device_willow.tar.xz
   artifacts:
     paths:
       - out/*
