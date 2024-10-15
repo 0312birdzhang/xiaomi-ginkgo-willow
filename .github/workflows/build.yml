@@ -16,12 +16,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-          #- name: Set up Python 2 (since it's deprecated in many environments)
-          #  run: |
-          #    sudo apt update
-          #    sudo apt install python-is-python2
-          #    sudo ln -sf /usr/bin/python2 /usr/bin/python
-
       - name: Install dependencies
         run: |
           sudo apt update
@@ -37,7 +31,7 @@ jobs:
         run: ./build/build.sh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-output
           path: out/*
@@ -47,6 +41,9 @@ jobs:
     needs: build
     if: github.event_name == 'workflow_dispatch' # Manual trigger
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -81,6 +78,9 @@ jobs:
     needs: build
     continue-on-error: true
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Install dependencies
         run: |
           sudo apt update
@@ -101,7 +101,7 @@ jobs:
           mv out/rootfs.img out/ubuntu.img
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: devel-flashable-output
           path: |
