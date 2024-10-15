@@ -1,48 +1,7 @@
-image: ubuntu:20.04
+include:
+    - https://gitlab.com/ubports/porting/community-ports/halium-generic-adaptation-build-tools/-/raw/main/gsi-port-ci.yml
 
-build:
-  stage: build
-  script:
-    - apt update
-    - apt install android-tools-mkbootimg bc bison build-essential ca-certificates cpio curl flex git kmod libssl-dev libtinfo5 python2 sudo unzip wget xz-utils -y --no-install-recommends
-    - ln -sf python2.7 /usr/bin/python
-    - git clone https://gitlab.com/ubports/community-ports/halium-generic-adaptation-build-tools build
-    - ./build/build.sh
-    # for compatibility until device name is changed on system-image-server
-    - cp out/device_ginkgo.tar.xz device_willow.tar.xz
-  artifacts:
-    paths:
-      - out/*
+variables:
+    BUILD_DEVEL_FLASHABLE_FOCAL: "1"
 
-flashable:
-  stage: deploy
-  script:
-    - apt update
-    - apt install -y git img2simg jq sudo wget xz-utils
-    - git clone https://gitlab.com/ubports/community-ports/halium-generic-adaptation-build-tools build
-    - DEVICE="$(source deviceinfo && echo $deviceinfo_codename)"
-    - ./build/fetch-and-prepare-latest-ota.sh "16.04/arm64/android9/devel" "$DEVICE" ota
-    - mkdir -p out
-    - ./build/system-image-from-ota.sh ota/ubuntu_command out
-  artifacts:
-    paths:
-      - out/boot.img
-      - out/dtbo.img
-      - out/system.img
-  when: manual
 
-devel-flashable:
-  stage: deploy
-  script:
-    - apt update
-    - apt install -y git img2simg jq sudo wget xz-utils
-    - git clone https://gitlab.com/ubports/community-ports/halium-generic-adaptation-build-tools build
-    - DEVICE="$(source deviceinfo && echo $deviceinfo_codename)"
-    - ./build/prepare-fake-ota.sh out/device_$DEVICE.tar.xz ota
-    - mkdir -p out
-    - ./build/system-image-from-ota.sh ota/ubuntu_command out
-  artifacts:
-    paths:
-      - out/boot.img
-      - out/dtbo.img
-      - out/system.img
