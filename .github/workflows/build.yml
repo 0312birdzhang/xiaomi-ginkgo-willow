@@ -6,7 +6,7 @@ on:
       - master
   workflow_dispatch:
 env:
-  ADAPTATION_TOOLS_BRANCH: main
+  ADAPATION_TOOLS_BRANCH: main
   BUILD_DEVEL_FLASHABLE_FOCAL: "1"
 
 jobs:
